@@ -268,10 +268,12 @@ class AnimationFragment : Fragment() {
             RC_ASSET -> {
                 val assetName = data.getStringExtra(EXTRA_ANIMATION_NAME)
                 animationView.imageAssetsFolder = assetFolders[assetName]
+                val start = System.currentTimeMillis()
                 LottieComposition.Factory.fromAssetFileName(context, assetName, { composition ->
                             if (composition == null) {
                                 onLoadError()
                             } else {
+                                Log.d("Gabe", "t=" + (System.currentTimeMillis() - start))
                                 setComposition(composition, assetName)
                             }
                         })

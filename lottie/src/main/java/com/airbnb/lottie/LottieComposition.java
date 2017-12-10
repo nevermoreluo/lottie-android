@@ -9,6 +9,7 @@ import android.support.annotation.RawRes;
 import android.support.annotation.RestrictTo;
 import android.support.v4.util.LongSparseArray;
 import android.support.v4.util.SparseArrayCompat;
+import android.util.JsonReader;
 import android.util.Log;
 
 import com.airbnb.lottie.model.FileCompositionLoader;
@@ -16,6 +17,7 @@ import com.airbnb.lottie.model.Font;
 import com.airbnb.lottie.model.FontCharacter;
 import com.airbnb.lottie.model.JsonCompositionLoader;
 import com.airbnb.lottie.model.layer.Layer;
+import com.airbnb.lottie.utils.JsonUtils;
 import com.airbnb.lottie.utils.Utils;
 
 import org.json.JSONArray;
@@ -263,6 +265,15 @@ public class LottieComposition {
     }
 
     public static LottieComposition fromJsonSync(Resources res, JSONObject json) {
+      try {
+        return fromJsonSyncInternal(res, json);
+      } catch (IOException e) {
+        throw new IllegalArgumentException("Unable to parse json", e);
+      }
+    }
+
+    public static LottieComposition fromJsonSyncInternal(Resources res, JSONObject json)
+        throws IOException{
       Rect bounds = null;
       float scale = res.getDisplayMetrics().density;
       int width = json.optInt("w", -1);
@@ -289,58 +300,74 @@ public class LottieComposition {
       parsePrecomps(assetsJson, composition);
       parseFonts(json.optJSONObject("fonts"), composition);
       parseChars(json.optJSONArray("chars"), composition);
-      parseLayers(json, composition);
+      parseLayers(JsonUtils.jsonToReader(json), composition);
       return composition;
     }
 
-    private static void parseLayers(JSONObject json, LottieComposition composition) {
-      JSONArray jsonLayers = json.optJSONArray("layers");
-      // This should never be null. Bodymovin always exports at least an empty array.
-      // However, it seems as if the unmarshalling from the React Native library sometimes
-      // causes this to be null. The proper fix should be done there but this will prevent a crash.
-      // https://github.com/airbnb/lottie-android/issues/279
-      if (jsonLayers == null) {
-        return;
-      }
-      int length = jsonLayers.length();
-      int imageCount = 0;
-      for (int i = 0; i < length; i++) {
-        Layer layer = Layer.Factory.newInstance(jsonLayers.optJSONObject(i), composition);
-        if (layer.getLayerType() == Layer.LayerType.Image) {
-          imageCount++;
-        }
-        addLayer(composition.layers, composition.layerMap, layer);
-      }
+    private static void parseLayers(JsonReader reader, LottieComposition composition)
+        throws IOException {
+      reader.beginObject();
+      while (reader.hasNext()) {
+        switch (reader.nextName()) {
+          case "layers":
+            int imageCount = 0;
+            reader.beginArray();
+            while (reader.hasNext()) {
+              Layer layer = Layer.Factory.newInstance(reader, composition);
+              if (layer.getLayerType() == Layer.LayerType.Image) {
+                imageCount++;
+              }
+              addLayer(composition.layers, composition.layerMap, layer);
 
-      if (imageCount > 4) {
-        composition.addWarning("You have " + imageCount + " images. Lottie should primarily be " +
-            "used with shapes. If you are using Adobe Illustrator, convert the Illustrator layers" +
-            " to shape layers.");
+              if (imageCount > 4) {
+                composition.addWarning("You have " + imageCount + " images. Lottie should primarily be " +
+                    "used with shapes. If you are using Adobe Illustrator, convert the Illustrator layers" +
+                    " to shape layers.");
+              }
+            }
+            reader.endArray();
+            break;
+          default:
+            reader.skipValue();
+        }
       }
+      reader.endObject();
     }
 
     private static void parsePrecomps(
-        @Nullable JSONArray assetsJson, LottieComposition composition) {
+        @Nullable JSONArray assetsJson, LottieComposition composition) throws IOException {
       if (assetsJson == null) {
         return;
       }
-      int length = assetsJson.length();
-      for (int i = 0; i < length; i++) {
-        JSONObject assetJson = assetsJson.optJSONObject(i);
-        JSONArray layersJson = assetJson.optJSONArray("layers");
-        if (layersJson == null) {
-          continue;
-        }
-        List<Layer> layers = new ArrayList<>(layersJson.length());
+      JsonReader reader = JsonUtils.jsonToReader(assetsJson);
+      reader.beginArray();
+      while (reader.hasNext()) {
+        List<Layer> layers = new ArrayList<>();
         LongSparseArray<Layer> layerMap = new LongSparseArray<>();
-        for (int j = 0; j < layersJson.length(); j++) {
-          Layer layer = Layer.Factory.newInstance(layersJson.optJSONObject(j), composition);
-          layerMap.put(layer.getId(), layer);
-          layers.add(layer);
+        String id = null;
+        reader.beginObject();
+        while (reader.hasNext()) {
+          switch (reader.nextName()) {
+            case "layers":
+              reader.beginArray();
+              while (reader.hasNext()) {
+                Layer layer = Layer.Factory.newInstance(reader, composition);
+                layerMap.put(layer.getId(), layer);
+                layers.add(layer);
+              }
+              reader.endArray();
+              break;
+            case "id":
+              id = reader.nextString();
+              break;
+            default:
+              reader.skipValue();
+          }
         }
-        String id = assetJson.optString("id");
+        reader.endObject();
         composition.precomps.put(id, layers);
       }
+      reader.endArray();
     }
 
     private static void parseImages(
@@ -374,7 +401,8 @@ public class LottieComposition {
       }
     }
 
-    private static void parseChars(@Nullable JSONArray charsJson, LottieComposition composition) {
+    private static void parseChars(@Nullable JSONArray charsJson, LottieComposition composition)
+        throws IOException {
       if (charsJson == null) {
         return;
       }
