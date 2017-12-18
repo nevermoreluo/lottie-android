@@ -65,7 +65,7 @@ public class LottieComposition {
   private final int minorVersion;
   private final int patchVersion;
 
-  private LottieComposition(Rect bounds, long startFrame, long endFrame, float frameRate,
+  private LottieComposition(Rect bounds, float startFrame, float endFrame, float frameRate,
       float dpScale, int major, int minor, int patch) {
     this.bounds = bounds;
     this.startFrame = startFrame;
@@ -266,72 +266,100 @@ public class LottieComposition {
 
     public static LottieComposition fromJsonSync(Resources res, JSONObject json) {
       try {
-        return fromJsonSyncInternal(res, json);
+        return fromJsonSyncInternal(res, JsonUtils.jsonToReader(json));
       } catch (IOException e) {
         throw new IllegalArgumentException("Unable to parse json", e);
       }
     }
 
-    public static LottieComposition fromJsonSyncInternal(Resources res, JSONObject json)
+    public static LottieComposition fromJsonSyncInternal(Resources res, JsonReader reader)
         throws IOException{
-      Rect bounds = null;
+      // TODO: use system resources to not need context.
       float scale = res.getDisplayMetrics().density;
-      int width = json.optInt("w", -1);
-      int height = json.optInt("h", -1);
+      int width = 0;
+      int height = 0;
+      float startFrame = 0;
+      float endFrame = 0;
+      float frameRate = 0;
+      int major = 0;
+      int minor = 0;
+      int patch = 0;
 
-      if (width != -1 && height != -1) {
-        int scaledWidth = (int) (width * scale);
-        int scaledHeight = (int) (height * scale);
-        bounds = new Rect(0, 0, scaledWidth, scaledHeight);
-      }
+      LottieComposition composition = null;
 
-      long startFrame = json.optLong("ip", 0);
-      long endFrame = json.optLong("op", 0);
-      float frameRate = (float) json.optDouble("fr", 0);
-      String version = json.optString("v");
-      String[] versions = version.split("\\.");
-      int major = Integer.parseInt(versions[0]);
-      int minor = Integer.parseInt(versions[1]);
-      int patch = Integer.parseInt(versions[2]);
-      LottieComposition composition = new LottieComposition(
-          bounds, startFrame, endFrame, frameRate, scale, major, minor, patch);
-      JSONArray assetsJson = json.optJSONArray("assets");
-      parseImages(assetsJson, composition);
-      parsePrecomps(assetsJson, composition);
-      parseFonts(json.optJSONObject("fonts"), composition);
-      parseChars(json.optJSONArray("chars"), composition);
-      parseLayers(JsonUtils.jsonToReader(json), composition);
-      return composition;
-    }
+      List<Layer> layers = new ArrayList<>();
+      LongSparseArray<Layer> layerMap = new LongSparseArray<>();
+      List<String> warnings = new ArrayList<>();
 
-    private static void parseLayers(JsonReader reader, LottieComposition composition)
-        throws IOException {
       reader.beginObject();
       while (reader.hasNext()) {
         switch (reader.nextName()) {
+          case "w":
+            width = reader.nextInt();
+            break;
+          case "h":
+            height = reader.nextInt();
+            break;
+          case "ip":
+            startFrame = (float) reader.nextDouble();
+            break;
+          case "op":
+            endFrame = (float) reader.nextDouble();
+            break;
+          case "fr":
+            frameRate = (float) reader.nextDouble();
+            break;
+          case "v":
+            String version = reader.nextString();
+            String[] versions = version.split("\\.");
+            major = Integer.parseInt(versions[0]);
+            minor = Integer.parseInt(versions[1]);
+            patch = Integer.parseInt(versions[2]);
+            break;
           case "layers":
-            int imageCount = 0;
-            reader.beginArray();
-            while (reader.hasNext()) {
-              Layer layer = Layer.Factory.newInstance(reader, composition);
-              if (layer.getLayerType() == Layer.LayerType.Image) {
-                imageCount++;
-              }
-              addLayer(composition.layers, composition.layerMap, layer);
+            int scaledWidth = (int) (width * scale);
+            int scaledHeight = (int) (height * scale);
+            Rect bounds = new Rect(0, 0, scaledWidth, scaledHeight);
+            composition = new LottieComposition(
+                bounds, startFrame, endFrame, frameRate, scale, major, minor, patch);
 
-              if (imageCount > 4) {
-                composition.addWarning("You have " + imageCount + " images. Lottie should primarily be " +
-                    "used with shapes. If you are using Adobe Illustrator, convert the Illustrator layers" +
-                    " to shape layers.");
-              }
-            }
-            reader.endArray();
+            parseLayers(reader, composition);
             break;
           default:
             reader.skipValue();
         }
       }
       reader.endObject();
+
+
+
+      // JSONArray assetsJson = json.optJSONArray("assets");
+      // parseImages(assetsJson, composition);
+      // parsePrecomps(assetsJson, composition);
+      // parseFonts(json.optJSONObject("fonts"), composition);
+      // parseChars(json.optJSONArray("chars"), composition);
+      return composition;
+    }
+
+    private static void parseLayers(JsonReader reader,
+        List<Layer> layers, LongSparseArray<Layer> layerMap, List<String> warnings)
+        throws IOException {
+      int imageCount = 0;
+      reader.beginArray();
+      while (reader.hasNext()) {
+        Layer layer = Layer.Factory.newInstance(reader, composition);
+        if (layer.getLayerType() == Layer.LayerType.Image) {
+          imageCount++;
+        }
+        addLayer(layers, layerMap, layer);
+
+        if (imageCount > 4) {
+          warnings.add("You have " + imageCount + " images. Lottie should primarily be " +
+              "used with shapes. If you are using Adobe Illustrator, convert the Illustrator layers" +
+              " to shape layers.");
+        }
+      }
+      reader.endArray();
     }
 
     private static void parsePrecomps(
