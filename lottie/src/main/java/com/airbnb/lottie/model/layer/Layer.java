@@ -276,10 +276,10 @@ public class Layer {
             parentId = reader.nextInt();
             break;
           case "sw":
-            solidWidth = (int) (reader.nextInt() * composition.getDpScale());
+            solidWidth = (int) (reader.nextInt() * Utils.dpScale());
             break;
           case "sh":
-            solidHeight = (int) (reader.nextInt() * composition.getDpScale());
+            solidHeight = (int) (reader.nextInt() * Utils.dpScale());
             break;
           case "sc":
             solidColor = Color.parseColor(reader.nextString());
@@ -337,6 +337,7 @@ public class Layer {
                   reader.skipValue();
                 }
               }
+              reader.endObject();
             }
             reader.endArray();
             composition.addWarning("Lottie doesn't support layer effects. If you are using them for " +
@@ -350,10 +351,10 @@ public class Layer {
             startFrame = (float) reader.nextDouble();
             break;
           case "w":
-            preCompWidth = (int) (reader.nextInt() * composition.getDpScale());
+            preCompWidth = (int) (reader.nextInt() * Utils.dpScale());
             break;
           case "h":
-            preCompHeight = (int) (reader.nextInt() * composition.getDpScale());
+            preCompHeight = (int) (reader.nextInt() * Utils.dpScale());
             break;
           case "ip":
             inFrame = (float) reader.nextDouble();

@@ -38,10 +38,9 @@ public class PathKeyframe extends Keyframe<PointF> {
 
     public static PathKeyframe newInstance(JsonReader reader, LottieComposition composition,
         AnimatableValue.Factory<PointF> valueFactory) throws IOException {
-      // TODO (json): figure out if the animated parameter is correct
+      boolean animated = reader.peek() == JsonToken.BEGIN_OBJECT;
       Keyframe<PointF> keyframe = Keyframe.Factory.newInstance(
-          reader, composition, composition.getDpScale(), valueFactory,
-          reader.peek() == JsonToken.BEGIN_OBJECT);
+          reader, composition, Utils.dpScale(), valueFactory, animated);
 
 
       return new PathKeyframe(composition, keyframe.startValue,

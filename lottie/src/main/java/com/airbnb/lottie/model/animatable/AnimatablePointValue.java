@@ -8,6 +8,7 @@ import com.airbnb.lottie.animation.Keyframe;
 import com.airbnb.lottie.animation.keyframe.BaseKeyframeAnimation;
 import com.airbnb.lottie.animation.keyframe.PointKeyframeAnimation;
 import com.airbnb.lottie.model.PointFFactory;
+import com.airbnb.lottie.utils.Utils;
 
 import java.io.IOException;
 import java.util.List;
@@ -28,7 +29,7 @@ public class AnimatablePointValue extends BaseAnimatableValue<PointF, PointF> {
     public static AnimatablePointValue newInstance(
         JsonReader reader, LottieComposition composition) throws IOException {
       return new AnimatablePointValue(AnimatableValueParser
-              .newInstance(reader, composition.getDpScale(), composition, PointFFactory.INSTANCE)
+              .newInstance(reader, Utils.dpScale(), composition, PointFFactory.INSTANCE)
       );
     }
   }

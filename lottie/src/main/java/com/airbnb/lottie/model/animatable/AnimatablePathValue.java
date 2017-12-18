@@ -11,6 +11,7 @@ import com.airbnb.lottie.animation.keyframe.PathKeyframe;
 import com.airbnb.lottie.animation.keyframe.PathKeyframeAnimation;
 import com.airbnb.lottie.animation.keyframe.PointKeyframeAnimation;
 import com.airbnb.lottie.utils.JsonUtils;
+import com.airbnb.lottie.utils.Utils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -69,8 +70,7 @@ public class AnimatablePathValue implements AnimatableValue<PointF, PointF> {
       reader.endArray();
       Keyframe.setEndFrames(keyframes);
     } else {
-      keyframes.add(
-          new Keyframe<>(JsonUtils.jsonToPoint(reader, composition.getDpScale())));
+      keyframes.add(new Keyframe<>(JsonUtils.jsonToPoint(reader, Utils.dpScale())));
     }
   }
 

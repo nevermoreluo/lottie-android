@@ -7,7 +7,6 @@ import android.support.v4.util.SparseArrayCompat;
 import android.support.v4.view.animation.PathInterpolatorCompat;
 import android.util.JsonReader;
 import android.util.JsonToken;
-import android.util.Log;
 import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
 
@@ -266,7 +265,6 @@ public class Keyframe<T> {
     private static <T> Keyframe<T> parseStaticValue(JsonReader reader,
         float scale, AnimatableValue.Factory<T> valueFactory) throws IOException {
       T value = valueFactory.valueFromObject(reader, scale);
-      Log.d("Gabe", "Factory#parseStaticValue\t" + value + "\t" + scale);
       return new Keyframe<>(value);
     }
 

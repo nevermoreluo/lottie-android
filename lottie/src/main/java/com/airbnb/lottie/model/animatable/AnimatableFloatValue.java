@@ -7,6 +7,7 @@ import com.airbnb.lottie.animation.Keyframe;
 import com.airbnb.lottie.animation.keyframe.BaseKeyframeAnimation;
 import com.airbnb.lottie.animation.keyframe.FloatKeyframeAnimation;
 import com.airbnb.lottie.utils.JsonUtils;
+import com.airbnb.lottie.utils.Utils;
 
 import java.io.IOException;
 import java.util.List;
@@ -55,7 +56,7 @@ public class AnimatableFloatValue extends BaseAnimatableValue<Float, Float> {
 
     public static AnimatableFloatValue newInstance(
         JsonReader reader, LottieComposition composition, boolean isDp) throws IOException {
-      float scale = isDp ? composition.getDpScale() : 1f;
+      float scale = isDp ? Utils.dpScale() : 1f;
       // TODO (json)
       // if (json != null && json.has("x")) {
       //   composition.addWarning("Lottie doesn't support expressions.");
