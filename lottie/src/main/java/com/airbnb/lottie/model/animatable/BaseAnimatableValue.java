@@ -17,9 +17,6 @@ public abstract class BaseAnimatableValue<V, O> implements AnimatableValue<V, O>
   }
 
   BaseAnimatableValue(List<Keyframe<V>> keyframes) {
-    if (keyframes.isEmpty()) {
-      throw new IllegalStateException("There are no keyframes");
-    }
     this.keyframes = keyframes;
   }
 

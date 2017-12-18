@@ -273,6 +273,11 @@ public class Keyframe<T> {
         throws IOException {
       List<Keyframe<T>> keyframes = new ArrayList<>();
 
+      if (reader.peek() == JsonToken.STRING) {
+        composition.addWarning("Lottie doesn't support expressions.");
+        return keyframes;
+      }
+
       reader.beginObject();
       while (reader.hasNext()) {
         switch (reader.nextName()) {

@@ -1,5 +1,6 @@
 package com.airbnb.lottie.model.animatable;
 
+import android.support.annotation.Nullable;
 import android.util.JsonReader;
 
 import com.airbnb.lottie.LottieComposition;
@@ -22,13 +23,19 @@ class AnimatableValueParser<T> {
     this.valueFactory = valueFactory;
   }
 
-  static <T> List<Keyframe<T>> newInstance(JsonReader reader, float scale,
+  /**
+   * Will return null if the animation can't be played such as if it has expressions.
+   */
+  @Nullable static <T> List<Keyframe<T>> newInstance(JsonReader reader, float scale,
       LottieComposition composition, AnimatableValue.Factory<T> valueFactory) throws IOException {
     AnimatableValueParser<T> parser =
         new AnimatableValueParser<>(reader, scale, composition, valueFactory);
     return parser.parseKeyframes();
   }
 
+  /**
+   * Will return null if the animation can't be played such as if it has expressions.
+   */
   private List<Keyframe<T>> parseKeyframes() throws IOException {
     return Keyframe.Factory.parseKeyframes(reader, composition, scale, valueFactory);
   }

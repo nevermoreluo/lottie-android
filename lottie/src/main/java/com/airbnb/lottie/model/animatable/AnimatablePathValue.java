@@ -25,6 +25,8 @@ public class AnimatablePathValue implements AnimatableValue<PointF, PointF> {
     AnimatableFloatValue xAnimation = null;
     AnimatableFloatValue yAnimation = null;
 
+    boolean hasExpressions = false;
+
     reader.beginObject();
     while (reader.peek() != JsonToken.END_OBJECT) {
       switch (reader.nextName()) {
@@ -32,16 +34,31 @@ public class AnimatablePathValue implements AnimatableValue<PointF, PointF> {
           pathAnimation = new AnimatablePathValue(reader, composition);
           break;
         case "x":
-          xAnimation = AnimatableFloatValue.Factory.newInstance(reader, composition);
+          if (reader.peek() == JsonToken.STRING) {
+            hasExpressions = true;
+            reader.skipValue();
+          } else {
+            xAnimation = AnimatableFloatValue.Factory.newInstance(reader, composition);
+          }
           break;
         case "y":
-          yAnimation = AnimatableFloatValue.Factory.newInstance(reader, composition);
+          if (reader.peek() == JsonToken.STRING) {
+            hasExpressions = true;
+            reader.skipValue();
+          } else {
+            yAnimation = AnimatableFloatValue.Factory.newInstance(reader, composition);
+          }
           break;
         default:
           reader.skipValue();
       }
     }
     reader.endObject();
+
+    if (hasExpressions) {
+      composition.addWarning("Lottie doesn't support expressions.");
+      return new AnimatablePathValue();
+    }
 
     if (pathAnimation != null) {
       return pathAnimation;

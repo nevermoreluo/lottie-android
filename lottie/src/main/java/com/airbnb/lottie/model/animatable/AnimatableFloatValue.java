@@ -57,10 +57,6 @@ public class AnimatableFloatValue extends BaseAnimatableValue<Float, Float> {
     public static AnimatableFloatValue newInstance(
         JsonReader reader, LottieComposition composition, boolean isDp) throws IOException {
       float scale = isDp ? Utils.dpScale() : 1f;
-      // TODO (json)
-      // if (json != null && json.has("x")) {
-      //   composition.addWarning("Lottie doesn't support expressions.");
-      // }
       return new AnimatableFloatValue(
           AnimatableValueParser.newInstance(reader, scale, composition, ValueFactory.INSTANCE));
     }
