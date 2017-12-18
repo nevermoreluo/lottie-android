@@ -286,7 +286,7 @@ public class Keyframe<T> {
               reader.beginArray();
 
               if (reader.peek() == JsonToken.NUMBER) {
-                // For properties, the static value is an array of numbers.
+                // For properties in which the static value is an array of numbers.
                 keyframes.add(Keyframe.Factory.newInstance(reader, composition, scale, valueFactory, false));
               } else {
                 while (reader.hasNext()) {
