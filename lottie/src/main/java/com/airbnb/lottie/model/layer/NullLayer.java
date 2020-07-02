@@ -5,9 +5,6 @@ import android.graphics.Matrix;
 import android.graphics.RectF;
 
 import com.airbnb.lottie.LottieDrawable;
-import com.airbnb.lottie.model.KeyPath;
-
-import java.util.List;
 
 public class NullLayer extends BaseLayer {
   NullLayer(LottieDrawable lottieDrawable, Layer layerModel) {
@@ -18,8 +15,8 @@ public class NullLayer extends BaseLayer {
     // Do nothing.
   }
 
-  @Override public void getBounds(RectF outBounds, Matrix parentMatrix) {
-    super.getBounds(outBounds, parentMatrix);
+  @Override public void getBounds(RectF outBounds, Matrix parentMatrix, boolean applyParents) {
+    super.getBounds(outBounds, parentMatrix, applyParents);
     outBounds.set(0, 0, 0, 0);
   }
 }

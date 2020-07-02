@@ -2,44 +2,28 @@ package com.airbnb.lottie.model.content;
 
 import android.graphics.PointF;
 
-import com.airbnb.lottie.LottieComposition;
 import com.airbnb.lottie.LottieDrawable;
 import com.airbnb.lottie.animation.content.Content;
 import com.airbnb.lottie.animation.content.RectangleContent;
 import com.airbnb.lottie.model.animatable.AnimatableFloatValue;
-import com.airbnb.lottie.model.animatable.AnimatablePathValue;
 import com.airbnb.lottie.model.animatable.AnimatablePointValue;
 import com.airbnb.lottie.model.animatable.AnimatableValue;
 import com.airbnb.lottie.model.layer.BaseLayer;
-
-import org.json.JSONObject;
 
 public class RectangleShape implements ContentModel {
   private final String name;
   private final AnimatableValue<PointF, PointF> position;
   private final AnimatablePointValue size;
   private final AnimatableFloatValue cornerRadius;
+  private final boolean hidden;
 
-  private RectangleShape(String name, AnimatableValue<PointF, PointF> position,
-      AnimatablePointValue size, AnimatableFloatValue cornerRadius) {
+  public RectangleShape(String name, AnimatableValue<PointF, PointF> position,
+                        AnimatablePointValue size, AnimatableFloatValue cornerRadius, boolean hidden) {
     this.name = name;
     this.position = position;
     this.size = size;
     this.cornerRadius = cornerRadius;
-  }
-
-  static class Factory {
-    private Factory() {
-    }
-
-    static RectangleShape newInstance(JSONObject json, LottieComposition composition) {
-      return new RectangleShape(
-          json.optString("nm"),
-          AnimatablePathValue.createAnimatablePathOrSplitDimensionPath(
-              json.optJSONObject("p"), composition),
-          AnimatablePointValue.Factory.newInstance(json.optJSONObject("s"), composition),
-          AnimatableFloatValue.Factory.newInstance(json.optJSONObject("r"), composition));
-    }
+    this.hidden = hidden;
   }
 
   public String getName() {
@@ -56,6 +40,10 @@ public class RectangleShape implements ContentModel {
 
   public AnimatableValue<PointF, PointF> getPosition() {
     return position;
+  }
+
+  public boolean isHidden() {
+    return hidden;
   }
 
   @Override public Content toContent(LottieDrawable drawable, BaseLayer layer) {

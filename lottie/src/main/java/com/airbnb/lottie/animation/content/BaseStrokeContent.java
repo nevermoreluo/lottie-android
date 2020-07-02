@@ -8,13 +8,16 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PathMeasure;
 import android.graphics.RectF;
-import android.support.annotation.CallSuper;
-import android.support.annotation.Nullable;
+import androidx.annotation.CallSuper;
+import androidx.annotation.Nullable;
 
 import com.airbnb.lottie.L;
 import com.airbnb.lottie.LottieDrawable;
 import com.airbnb.lottie.LottieProperty;
+import com.airbnb.lottie.animation.LPaint;
 import com.airbnb.lottie.animation.keyframe.BaseKeyframeAnimation;
+import com.airbnb.lottie.animation.keyframe.FloatKeyframeAnimation;
+import com.airbnb.lottie.animation.keyframe.IntegerKeyframeAnimation;
 import com.airbnb.lottie.animation.keyframe.ValueCallbackKeyframeAnimation;
 import com.airbnb.lottie.model.KeyPath;
 import com.airbnb.lottie.model.animatable.AnimatableFloatValue;
@@ -38,9 +41,10 @@ public abstract class BaseStrokeContent
   private final Path trimPathPath = new Path();
   private final RectF rect = new RectF();
   private final LottieDrawable lottieDrawable;
+  protected final BaseLayer layer;
   private final List<PathGroup> pathGroups = new ArrayList<>();
   private final float[] dashPatternValues;
-  final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+  final Paint paint = new LPaint(Paint.ANTI_ALIAS_FLAG);
 
   private final BaseKeyframeAnimation<?, Float> widthAnimation;
   private final BaseKeyframeAnimation<?, Integer> opacityAnimation;
@@ -49,13 +53,15 @@ public abstract class BaseStrokeContent
   @Nullable private BaseKeyframeAnimation<ColorFilter, ColorFilter> colorFilterAnimation;
 
   BaseStrokeContent(final LottieDrawable lottieDrawable, BaseLayer layer, Paint.Cap cap,
-      Paint.Join join, AnimatableIntegerValue opacity, AnimatableFloatValue width,
+      Paint.Join join, float miterLimit, AnimatableIntegerValue opacity, AnimatableFloatValue width,
       List<AnimatableFloatValue> dashPattern, AnimatableFloatValue offset) {
     this.lottieDrawable = lottieDrawable;
+    this.layer = layer;
 
     paint.setStyle(Paint.Style.STROKE);
     paint.setStrokeCap(cap);
     paint.setStrokeJoin(join);
+    paint.setStrokeMiter(miterLimit);
 
     opacityAnimation = opacity.createAnimation();
     widthAnimation = width.createAnimation();
@@ -101,7 +107,7 @@ public abstract class BaseStrokeContent
     for (int i = contentsBefore.size() - 1; i >= 0; i--) {
       Content content = contentsBefore.get(i);
       if (content instanceof TrimPathContent &&
-          ((TrimPathContent) content).getType() == ShapeTrimPath.Type.Individually) {
+          ((TrimPathContent) content).getType() == ShapeTrimPath.Type.INDIVIDUALLY) {
         trimPathContentBefore = (TrimPathContent) content;
       }
     }
@@ -113,7 +119,7 @@ public abstract class BaseStrokeContent
     for (int i = contentsAfter.size() - 1; i >= 0; i--) {
       Content content = contentsAfter.get(i);
       if (content instanceof TrimPathContent &&
-          ((TrimPathContent) content).getType() == ShapeTrimPath.Type.Individually) {
+          ((TrimPathContent) content).getType() == ShapeTrimPath.Type.INDIVIDUALLY) {
         if (currentPathGroup != null) {
           pathGroups.add(currentPathGroup);
         }
@@ -133,9 +139,13 @@ public abstract class BaseStrokeContent
 
   @Override public void draw(Canvas canvas, Matrix parentMatrix, int parentAlpha) {
     L.beginSection("StrokeContent#draw");
-    int alpha = (int) ((parentAlpha / 255f * opacityAnimation.getValue() / 100f) * 255);
+    if (Utils.hasZeroScaleAxis(parentMatrix)) {
+      L.endSection("StrokeContent#draw");
+      return;
+    }
+    int alpha = (int) ((parentAlpha / 255f * ((IntegerKeyframeAnimation) opacityAnimation).getIntValue() / 100f) * 255);
     paint.setAlpha(clamp(alpha, 0, 255));
-    paint.setStrokeWidth(widthAnimation.getValue() * Utils.getScale(parentMatrix));
+    paint.setStrokeWidth(((FloatKeyframeAnimation) widthAnimation).getFloatValue() * Utils.getScale(parentMatrix));
     if (paint.getStrokeWidth() <= 0) {
       // Android draws a hairline stroke for 0, After Effects doesn't.
       L.endSection("StrokeContent#draw");
@@ -235,7 +245,7 @@ public abstract class BaseStrokeContent
     L.endSection("StrokeContent#applyTrimPath");
   }
 
-  @Override public void getBounds(RectF outBounds, Matrix parentMatrix) {
+  @Override public void getBounds(RectF outBounds, Matrix parentMatrix, boolean applyParents) {
     L.beginSection("StrokeContent#getBounds");
     path.reset();
     for (int i = 0; i < pathGroups.size(); i++) {
@@ -246,7 +256,7 @@ public abstract class BaseStrokeContent
     }
     path.computeBounds(rect, false);
 
-    float width = widthAnimation.getValue();
+    float width = ((FloatKeyframeAnimation) widthAnimation).getFloatValue();
     rect.set(rect.left - width / 2f, rect.top - width / 2f,
         rect.right + width / 2f, rect.bottom + width / 2f);
     outBounds.set(rect);
@@ -285,7 +295,7 @@ public abstract class BaseStrokeContent
       }
       dashPatternValues[i] *= scale;
     }
-    float offset = dashPatternOffsetAnimation == null ? 0f : dashPatternOffsetAnimation.getValue();
+    float offset = dashPatternOffsetAnimation == null ? 0f : dashPatternOffsetAnimation.getValue() * scale;
     paint.setPathEffect(new DashPathEffect(dashPatternValues, offset));
     L.endSection("StrokeContent#applyDashPattern");
   }
@@ -304,11 +314,17 @@ public abstract class BaseStrokeContent
     } else if (property == LottieProperty.STROKE_WIDTH) {
       widthAnimation.setValueCallback((LottieValueCallback<Float>) callback);
     } else if (property == LottieProperty.COLOR_FILTER) {
+      if (colorFilterAnimation != null) {
+        layer.removeAnimation(colorFilterAnimation);
+      }
+
       if (callback == null) {
         colorFilterAnimation = null;
       } else {
         colorFilterAnimation =
             new ValueCallbackKeyframeAnimation<>((LottieValueCallback<ColorFilter>) callback);
+        colorFilterAnimation.addUpdateListener(this);
+        layer.addAnimation(colorFilterAnimation);
       }
     }
   }

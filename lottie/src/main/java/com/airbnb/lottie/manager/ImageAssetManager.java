@@ -4,27 +4,28 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 import android.text.TextUtils;
-import android.util.Log;
+import android.util.Base64;
 import android.view.View;
 
 import com.airbnb.lottie.ImageAssetDelegate;
-import com.airbnb.lottie.L;
 import com.airbnb.lottie.LottieImageAsset;
+import com.airbnb.lottie.utils.Logger;
+import com.airbnb.lottie.utils.Utils;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 public class ImageAssetManager {
+  private static final Object bitmapHashLock = new Object();
+
   private final Context context;
   private String imagesFolder;
   @Nullable private ImageAssetDelegate delegate;
   private final Map<String, LottieImageAsset> imageAssets;
-  private final Map<String, Bitmap> bitmaps = new HashMap<>();
 
   public ImageAssetManager(Drawable.Callback callback, String imagesFolder,
       ImageAssetDelegate delegate, Map<String, LottieImageAsset> imageAssets) {
@@ -35,7 +36,7 @@ public class ImageAssetManager {
     }
 
     if (!(callback instanceof View)) {
-      Log.w(L.TAG, "LottieDrawable must be inside of a view for images to work.");
+      Logger.warning("LottieDrawable must be inside of a view for images to work.");
       this.imageAssets = new HashMap<>();
       context = null;
       return;
@@ -50,56 +51,81 @@ public class ImageAssetManager {
     this.delegate = assetDelegate;
   }
 
+  /**
+   * Returns the previously set bitmap or null.
+   */
   @Nullable public Bitmap updateBitmap(String id, @Nullable Bitmap bitmap) {
-    return bitmaps.put(id, bitmap);
+    if (bitmap == null) {
+      LottieImageAsset asset = imageAssets.get(id);
+      Bitmap ret = asset.getBitmap();
+      asset.setBitmap(null);
+      return ret;
+    }
+    Bitmap prevBitmap = imageAssets.get(id).getBitmap();
+    putBitmap(id, bitmap);
+    return prevBitmap;
   }
 
   @Nullable public Bitmap bitmapForId(String id) {
-    Bitmap bitmap = bitmaps.get(id);
-    if (bitmap == null) {
-      LottieImageAsset imageAsset = imageAssets.get(id);
-      if (imageAsset == null) {
-        return null;
-      }
-      if (delegate != null) {
-        bitmap = delegate.fetchBitmap(imageAsset);
-        if (bitmap != null) {
-          bitmaps.put(id, bitmap);
-        }
-        return bitmap;
-      }
+    LottieImageAsset asset = imageAssets.get(id);
+    if (asset == null) {
+      return null;
+    }
+    Bitmap bitmap = asset.getBitmap();
+    if (bitmap != null) {
+      return bitmap;
+    }
 
-      InputStream is;
+    if (delegate != null) {
+      bitmap = delegate.fetchBitmap(asset);
+      if (bitmap != null) {
+        putBitmap(id, bitmap);
+      }
+      return bitmap;
+    }
+
+    String filename = asset.getFileName();
+    BitmapFactory.Options opts = new BitmapFactory.Options();
+    opts.inScaled = true;
+    opts.inDensity = 160;
+
+    if (filename.startsWith("data:") && filename.indexOf("base64,") > 0) {
+      // Contents look like a base64 data URI, with the format data:image/png;base64,<data>.
+      byte[] data;
       try {
-        if (TextUtils.isEmpty(imagesFolder)) {
-          throw new IllegalStateException("You must set an images folder before loading an image." +
-              " Set it with LottieComposition#setImagesFolder or LottieDrawable#setImagesFolder");
-        }
-        is = context.getAssets().open(imagesFolder + imageAsset.getFileName());
-      } catch (IOException e) {
-        Log.w(L.TAG, "Unable to open asset.", e);
+        data = Base64.decode(filename.substring(filename.indexOf(',') + 1), Base64.DEFAULT);
+      } catch (IllegalArgumentException e) {
+        Logger.warning("data URL did not have correct base64 format.", e);
         return null;
       }
-      BitmapFactory.Options opts = new BitmapFactory.Options();
-      opts.inScaled = true;
-      opts.inDensity = 160;
-      bitmap = BitmapFactory.decodeStream(is, null, opts);
-      bitmaps.put(id, bitmap);
+      bitmap = BitmapFactory.decodeByteArray(data, 0, data.length, opts);
+      return putBitmap(id, bitmap);
     }
-    return bitmap;
-  }
 
-  public void recycleBitmaps() {
-    Iterator<Map.Entry<String, Bitmap>> it = bitmaps.entrySet().iterator();
-    while (it.hasNext()) {
-      Map.Entry<String, Bitmap> entry = it.next();
-      entry.getValue().recycle();
-      it.remove();
+    InputStream is;
+    try {
+      if (TextUtils.isEmpty(imagesFolder)) {
+        throw new IllegalStateException("You must set an images folder before loading an image." +
+            " Set it with LottieComposition#setImagesFolder or LottieDrawable#setImagesFolder");
+      }
+      is = context.getAssets().open(imagesFolder + filename);
+    } catch (IOException e) {
+      Logger.warning("Unable to open asset.", e);
+      return null;
     }
+    bitmap = BitmapFactory.decodeStream(is, null, opts);
+    bitmap = Utils.resizeBitmapIfNeeded(bitmap, asset.getWidth(), asset.getHeight());
+    return putBitmap(id, bitmap);
   }
 
   public boolean hasSameContext(Context context) {
-    return context == null && this.context == null ||
-        context != null && this.context.equals(context);
+    return context == null && this.context == null || this.context.equals(context);
+  }
+
+  private Bitmap putBitmap(String key, @Nullable Bitmap bitmap) {
+    synchronized (bitmapHashLock) {
+      imageAssets.get(key).setBitmap(bitmap);
+      return bitmap;
+    }
   }
 }

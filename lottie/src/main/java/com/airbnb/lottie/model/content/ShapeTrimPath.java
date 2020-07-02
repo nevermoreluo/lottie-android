@@ -1,26 +1,23 @@
 package com.airbnb.lottie.model.content;
 
-import com.airbnb.lottie.LottieComposition;
 import com.airbnb.lottie.LottieDrawable;
 import com.airbnb.lottie.animation.content.Content;
 import com.airbnb.lottie.animation.content.TrimPathContent;
 import com.airbnb.lottie.model.animatable.AnimatableFloatValue;
 import com.airbnb.lottie.model.layer.BaseLayer;
 
-import org.json.JSONObject;
-
 public class ShapeTrimPath implements ContentModel {
 
   public enum Type {
-    Simultaneously,
-    Individually;
+    SIMULTANEOUSLY,
+    INDIVIDUALLY;
 
-    static Type forId(int id) {
+    public static Type forId(int id) {
       switch (id) {
         case 1:
-          return Simultaneously;
+          return SIMULTANEOUSLY;
         case 2:
-          return Individually;
+          return INDIVIDUALLY;
         default:
           throw new IllegalArgumentException("Unknown trim path type " + id);
       }
@@ -32,14 +29,16 @@ public class ShapeTrimPath implements ContentModel {
   private final AnimatableFloatValue start;
   private final AnimatableFloatValue end;
   private final AnimatableFloatValue offset;
+  private final boolean hidden;
 
-  private ShapeTrimPath(String name, Type type, AnimatableFloatValue start,
-      AnimatableFloatValue end, AnimatableFloatValue offset) {
+  public ShapeTrimPath(String name, Type type, AnimatableFloatValue start,
+                       AnimatableFloatValue end, AnimatableFloatValue offset, boolean hidden) {
     this.name = name;
     this.type = type;
     this.start = start;
     this.end = end;
     this.offset = offset;
+    this.hidden = hidden;
   }
 
   public String getName() {
@@ -62,25 +61,15 @@ public class ShapeTrimPath implements ContentModel {
     return offset;
   }
 
+  public boolean isHidden() {
+    return hidden;
+  }
+
   @Override public Content toContent(LottieDrawable drawable, BaseLayer layer) {
     return new TrimPathContent(layer, this);
   }
 
   @Override public String toString() {
     return "Trim Path: {start: " + start + ", end: " + end + ", offset: " + offset + "}";
-  }
-
-  static class Factory {
-    private Factory() {
-    }
-
-    static ShapeTrimPath newInstance(JSONObject json, LottieComposition composition) {
-      return new ShapeTrimPath(
-          json.optString("nm"),
-          Type.forId(json.optInt("m", 1)),
-          AnimatableFloatValue.Factory.newInstance(json.optJSONObject("s"), composition, false),
-          AnimatableFloatValue.Factory.newInstance(json.optJSONObject("e"), composition, false),
-          AnimatableFloatValue.Factory.newInstance(json.optJSONObject("o"), composition, false));
-    }
   }
 }

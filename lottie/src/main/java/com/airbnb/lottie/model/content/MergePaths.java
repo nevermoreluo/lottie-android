@@ -1,50 +1,49 @@
 package com.airbnb.lottie.model.content;
 
-import android.support.annotation.Nullable;
-import android.util.Log;
+import androidx.annotation.Nullable;
 
-import com.airbnb.lottie.L;
 import com.airbnb.lottie.LottieDrawable;
 import com.airbnb.lottie.animation.content.Content;
 import com.airbnb.lottie.animation.content.MergePathsContent;
 import com.airbnb.lottie.model.layer.BaseLayer;
-
-import org.json.JSONObject;
+import com.airbnb.lottie.utils.Logger;
 
 
 public class MergePaths implements ContentModel {
 
   public enum MergePathsMode {
-    Merge,
-    Add,
-    Subtract,
-    Intersect,
-    ExcludeIntersections;
+    MERGE,
+    ADD,
+    SUBTRACT,
+    INTERSECT,
+    EXCLUDE_INTERSECTIONS;
 
-    private static MergePathsMode forId(int id) {
+    public static MergePathsMode forId(int id) {
       switch (id) {
         case 1:
-          return Merge;
+          return MERGE;
         case 2:
-          return Add;
+          return ADD;
         case 3:
-          return Subtract;
+          return SUBTRACT;
         case 4:
-          return Intersect;
+          return INTERSECT;
         case 5:
-          return ExcludeIntersections;
+          return EXCLUDE_INTERSECTIONS;
         default:
-          return Merge;
+          return MERGE;
       }
     }
   }
 
   private final String name;
   private final MergePathsMode mode;
+  private final boolean hidden;
 
-  private MergePaths(String name, MergePathsMode mode) {
+  public MergePaths(String name, MergePathsMode mode, boolean hidden) {
     this.name = name;
     this.mode = mode;
+    this.hidden = hidden;
   }
 
   public String getName() {
@@ -55,9 +54,13 @@ public class MergePaths implements ContentModel {
     return mode;
   }
 
+  public boolean isHidden() {
+    return hidden;
+  }
+
   @Override @Nullable public Content toContent(LottieDrawable drawable, BaseLayer layer) {
     if (!drawable.enableMergePathsForKitKatAndAbove()) {
-      Log.w(L.TAG, "Animation contains merge paths but they are disabled.");
+      Logger.warning("Animation contains merge paths but they are disabled.");
       return null;
     }
     return new MergePathsContent(this);
@@ -66,14 +69,5 @@ public class MergePaths implements ContentModel {
   @Override
   public String toString() {
     return "MergePaths{" + "mode=" +  mode + '}';
-  }
-
-  static class Factory {
-    private Factory() {
-    }
-
-    static MergePaths newInstance(JSONObject json) {
-      return new MergePaths(json.optString("nm"), MergePathsMode.forId(json.optInt("mm", 1)));
-    }
   }
 }

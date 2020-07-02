@@ -1,6 +1,6 @@
 package com.airbnb.lottie.animation.keyframe;
 
-import com.airbnb.lottie.animation.Keyframe;
+import com.airbnb.lottie.value.Keyframe;
 import com.airbnb.lottie.utils.MiscUtils;
 
 import java.util.List;
@@ -11,18 +11,36 @@ public class IntegerKeyframeAnimation extends KeyframeAnimation<Integer> {
     super(keyframes);
   }
 
-  @Override Integer getValue(Keyframe<Integer> keyframe, float keyframeProgress) {
+  @Override
+  Integer getValue(Keyframe<Integer> keyframe, float keyframeProgress) {
+    return getIntValue(keyframe, keyframeProgress);
+  }
+
+  /**
+   * Optimization to avoid autoboxing.
+   */
+  int getIntValue(Keyframe<Integer> keyframe, float keyframeProgress) {
     if (keyframe.startValue == null || keyframe.endValue == null) {
       throw new IllegalStateException("Missing values for keyframe.");
     }
 
     if (valueCallback != null) {
       //noinspection ConstantConditions
-      return valueCallback.getValue(keyframe.startFrame, keyframe.endFrame,
-          keyframe.startValue, keyframe.endValue,
-          keyframeProgress, getLinearCurrentKeyframeProgress(), getProgress());
+      Integer value = valueCallback.getValueInternal(keyframe.startFrame, keyframe.endFrame,
+              keyframe.startValue, keyframe.endValue,
+              keyframeProgress, getLinearCurrentKeyframeProgress(), getProgress());
+      if (value != null) {
+        return value;
+      }
     }
 
-    return MiscUtils.lerp(keyframe.startValue, keyframe.endValue, keyframeProgress);
+    return MiscUtils.lerp(keyframe.getStartValueInt(), keyframe.getEndValueInt(), keyframeProgress);
+  }
+
+  /**
+   * Optimization to avoid autoboxing.
+   */
+  public int getIntValue() {
+    return getIntValue(getCurrentKeyframe(), getInterpolatedCurrentKeyframeProgress());
   }
 }

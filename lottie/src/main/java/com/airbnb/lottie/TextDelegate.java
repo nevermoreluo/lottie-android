@@ -1,7 +1,7 @@
 package com.airbnb.lottie;
 
-import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,6 +34,7 @@ public class TextDelegate {
     drawable = null;
   }
 
+  @SuppressWarnings("unused")
   public TextDelegate(@SuppressWarnings("NullableProblems") LottieDrawable drawable) {
     this.drawable = drawable;
     animationView = null;
@@ -43,7 +44,7 @@ public class TextDelegate {
    * Override this to replace the animation text with something dynamic. This can be used for
    * translations or custom data.
    */
-  public String getText(String input) {
+  private String getText(String input) {
     return input;
   }
 

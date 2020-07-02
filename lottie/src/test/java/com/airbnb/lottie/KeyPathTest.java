@@ -1,23 +1,21 @@
 package com.airbnb.lottie;
 
-import android.app.Application;
+import android.util.JsonReader;
 
 import com.airbnb.lottie.model.KeyPath;
 
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.List;
 
 import static junit.framework.Assert.assertEquals;
 
-@RunWith(RobolectricTestRunner.class)
-public class KeyPathTest {
+public class KeyPathTest extends BaseTest {
   private static final String[] V = {
       "Shape Layer 1",
       "Group 1",
@@ -32,15 +30,9 @@ public class KeyPathTest {
 
   @Before
   public void setupDrawable() {
-    Application context = RuntimeEnvironment.application;
     lottieDrawable = new LottieDrawable();
-    try {
-      LottieComposition composition = LottieComposition.Factory
-          .fromJsonSync(context.getResources(), new JSONObject(Fixtures.SQUARES));
-      lottieDrawable.setComposition(composition);
-    } catch (JSONException e) {
-      throw new IllegalStateException(e);
-    }
+    LottieComposition composition = LottieCompositionFactory.fromJsonStringSync(Fixtures.SQUARES, "squares").getValue();
+    lottieDrawable.setComposition(composition);
   }
 
   //<editor-fold desc="Basic Tests">

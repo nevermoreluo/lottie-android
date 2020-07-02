@@ -1,12 +1,14 @@
 package com.airbnb.lottie.model.animatable;
 
-import com.airbnb.lottie.animation.Keyframe;
+import android.graphics.PointF;
+
+import com.airbnb.lottie.value.Keyframe;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public abstract class BaseAnimatableValue<V, O> implements AnimatableValue<V, O> {
+abstract class BaseAnimatableValue<V, O> implements AnimatableValue<V, O> {
   final List<Keyframe<V>> keyframes;
 
   /**
@@ -18,6 +20,15 @@ public abstract class BaseAnimatableValue<V, O> implements AnimatableValue<V, O>
 
   BaseAnimatableValue(List<Keyframe<V>> keyframes) {
     this.keyframes = keyframes;
+  }
+
+  public List<Keyframe<V>> getKeyframes() {
+    return keyframes;
+  }
+
+  @Override
+  public boolean isStatic() {
+    return keyframes.isEmpty() || (keyframes.size() == 1 && keyframes.get(0).isStatic());
   }
 
   @Override public String toString() {

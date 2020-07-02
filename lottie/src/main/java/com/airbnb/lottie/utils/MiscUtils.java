@@ -2,7 +2,7 @@ package com.airbnb.lottie.utils;
 
 import android.graphics.Path;
 import android.graphics.PointF;
-import android.support.annotation.FloatRange;
+import androidx.annotation.FloatRange;
 
 import com.airbnb.lottie.animation.content.KeyPathElementContent;
 import com.airbnb.lottie.model.CubicCurveData;
@@ -12,6 +12,8 @@ import com.airbnb.lottie.model.content.ShapeData;
 import java.util.List;
 
 public class MiscUtils {
+  private static PointF pathFromDataCurrentPoint = new PointF();
+
   public static PointF addPoints(PointF p1, PointF p2) {
     return new PointF(p1.x + p2.x, p1.y + p2.y);
   }
@@ -20,14 +22,14 @@ public class MiscUtils {
     outPath.reset();
     PointF initialPoint = shapeData.getInitialPoint();
     outPath.moveTo(initialPoint.x, initialPoint.y);
-    PointF currentPoint = new PointF(initialPoint.x, initialPoint.y);
+    pathFromDataCurrentPoint.set(initialPoint.x, initialPoint.y);
     for (int i = 0; i < shapeData.getCurves().size(); i++) {
       CubicCurveData curveData = shapeData.getCurves().get(i);
       PointF cp1 = curveData.getControlPoint1();
       PointF cp2 = curveData.getControlPoint2();
       PointF vertex = curveData.getVertex();
 
-      if (cp1.equals(currentPoint) && cp2.equals(vertex)) {
+      if (cp1.equals(pathFromDataCurrentPoint) && cp2.equals(vertex)) {
         // On some phones like Samsung phones, zero valued control points can cause artifacting.
         // https://github.com/airbnb/lottie-android/issues/275
         //
@@ -38,7 +40,7 @@ public class MiscUtils {
       } else {
         outPath.cubicTo(cp1.x, cp1.y, cp2.x, cp2.y, vertex.x, vertex.y);
       }
-      currentPoint.set(vertex.x, vertex.y);
+      pathFromDataCurrentPoint.set(vertex.x, vertex.y);
     }
     if (shapeData.isClosed()) {
       outPath.close();
@@ -57,24 +59,19 @@ public class MiscUtils {
     return (int) (a + percentage * (b - a));
   }
 
-  public static int floorMod(float x, float y) {
+  static int floorMod(float x, float y) {
     return floorMod((int) x, (int) y);
   }
 
-  /**
-   * Copied from Math.floorMod in the Android platform.
-   */
-  public static int floorMod(int x, int y) {
-    return x - floorDiv(x, y) * y;
+  private static int floorMod(int x, int y) {
+    return x - y * floorDiv(x, y);
   }
 
-  /**
-   * Copied from Math.floorDiv in the Android platform.
-   */
   private static int floorDiv(int x, int y) {
     int r = x / y;
-    // if the signs are different and modulo not zero, round down
-    if ((x ^ y) < 0 && (r * y != x)) {
+    boolean sameSign = (x ^ y) >= 0;
+    int mod = x % y;
+    if (!sameSign && mod != 0) {
       r--;
     }
     return r;
@@ -86,6 +83,10 @@ public class MiscUtils {
 
   public static float clamp(float number, float min, float max) {
     return Math.max(min, Math.min(max, number));
+  }
+
+  public static boolean contains(float number, float rangeMin, float rangeMax) {
+    return number >= rangeMin && number <= rangeMax;
   }
 
   /**

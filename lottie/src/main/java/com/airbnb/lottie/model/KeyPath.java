@@ -1,8 +1,8 @@
 package com.airbnb.lottie.model;
 
-import android.support.annotation.CheckResult;
-import android.support.annotation.Nullable;
-import android.support.annotation.RestrictTo;
+import androidx.annotation.CheckResult;
+import androidx.annotation.Nullable;
+import androidx.annotation.RestrictTo;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,7 +11,8 @@ import java.util.List;
 /**
  * Defines which content to target.
  * The keypath can contain wildcards ('*') with match exactly 1 item.
- * or globstars ('**') which match 0 or more items.
+ * or globstars ('**') which match 0 or more items. or KeyPath.COMPOSITION
+ * to represent the root composition layer.
  *
  * For example, if your content were arranged like this:
  * Gabriel (Shape Layer)
@@ -35,18 +36,25 @@ import java.util.List;
  *        new KeyPath("*", "Body", Left Hand", "Fill");
  *     Match anything with the name Fill:
  *        new KeyPath("**", "Fill");
+ *     Target the the root composition layer:
+ *        KeyPath.COMPOSITION
  *
  *
  * NOTE: Content that are part of merge paths or repeaters cannot currently be resolved with
  * a {@link KeyPath}. This may be fixed in the future.
  */
 public class KeyPath {
+  /**
+   * A singleton KeyPath that targets on the root composition layer.
+   * This is useful if you want to apply transformer to the animation as a whole.
+   */
+  public final static KeyPath COMPOSITION = new KeyPath("COMPOSITION");
 
   private final List<String> keys;
   @Nullable private KeyPathElement resolvedElement;
 
   public KeyPath(String... keys) {
-    this.keys = new ArrayList<>(Arrays.asList(keys));
+    this.keys = Arrays.asList(keys);
   }
 
   /**
@@ -185,14 +193,10 @@ public class KeyPath {
   @SuppressWarnings("SimplifiableIfStatement")
   @RestrictTo(RestrictTo.Scope.LIBRARY)
   public boolean propagateToChildren(String key, int depth) {
-    if (key.equals("__container")) {
+    if ("__container".equals(key)) {
       return true;
     }
     return depth < keys.size() - 1 || keys.get(depth).equals("**");
-  }
-
-  public int size() {
-    return keys.size();
   }
 
   /**
@@ -200,17 +204,18 @@ public class KeyPath {
    * and for the contents of a ShapeLayer).
    */
   private boolean isContainer(String key) {
-    return key.equals("__container");
+    return "__container".equals(key);
   }
 
   private boolean endsWithGlobstar() {
     return keys.get(keys.size() - 1).equals("**");
   }
 
+  public String keysToString() {
+    return keys.toString();
+  }
+
   @Override public String toString() {
-    final StringBuilder sb = new StringBuilder("KeyPath{");
-    sb.append("keys=").append(keys).append(",resolved=").append(resolvedElement != null);
-    sb.append('}');
-    return sb.toString();
+    return "KeyPath{" + "keys=" + keys + ",resolved=" + (resolvedElement != null) + '}';
   }
 }

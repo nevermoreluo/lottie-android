@@ -1,7 +1,7 @@
 package com.airbnb.lottie;
 
-import android.support.v4.util.ArraySet;
-import android.support.v4.util.Pair;
+import androidx.collection.ArraySet;
+import androidx.core.util.Pair;
 import android.util.Log;
 
 import com.airbnb.lottie.utils.MeanCalculator;
@@ -22,7 +22,7 @@ public class PerformanceTracker {
 
   private boolean enabled = false;
   private final Set<FrameListener> frameListeners = new ArraySet<>();
-  private Map<String, MeanCalculator> layerRenderTimes = new HashMap<>();
+  private final Map<String, MeanCalculator> layerRenderTimes = new HashMap<>();
   private final Comparator<Pair<String, Float>> floatComparator =
       new Comparator<Pair<String, Float>>() {
     @Override public int compare(Pair<String, Float> o1, Pair<String, Float> o2) {
@@ -64,7 +64,7 @@ public class PerformanceTracker {
   }
 
   @SuppressWarnings("unused") public void removeFrameListener(FrameListener frameListener) {
-    frameListeners.add(frameListener);
+    frameListeners.remove(frameListener);
   }
 
   public void clearRenderTimes() {
@@ -83,7 +83,7 @@ public class PerformanceTracker {
     }
   }
 
-  @SuppressWarnings("WeakerAccess") public List<Pair<String, Float>> getSortedRenderTimes() {
+  public List<Pair<String, Float>> getSortedRenderTimes() {
     if (!enabled) {
       return Collections.emptyList();
     }

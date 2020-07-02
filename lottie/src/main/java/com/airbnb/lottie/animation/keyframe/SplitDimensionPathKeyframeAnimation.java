@@ -2,7 +2,7 @@ package com.airbnb.lottie.animation.keyframe;
 
 import android.graphics.PointF;
 
-import com.airbnb.lottie.animation.Keyframe;
+import com.airbnb.lottie.value.Keyframe;
 
 import java.util.Collections;
 
@@ -18,6 +18,8 @@ public class SplitDimensionPathKeyframeAnimation extends BaseKeyframeAnimation<P
 
     this.xAnimation = xAnimation;
     this.yAnimation = yAnimation;
+    // We need to call an initial setProgress so point gets set with the initial value.
+    setProgress(getProgress());
   }
 
   @Override public void setProgress(float progress) {

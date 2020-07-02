@@ -5,19 +5,22 @@ import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RectF;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import com.airbnb.lottie.LottieDrawable;
 import com.airbnb.lottie.LottieProperty;
+import com.airbnb.lottie.animation.LPaint;
 import com.airbnb.lottie.animation.keyframe.BaseKeyframeAnimation;
 import com.airbnb.lottie.animation.keyframe.ValueCallbackKeyframeAnimation;
 import com.airbnb.lottie.value.LottieValueCallback;
 
 public class SolidLayer extends BaseLayer {
-
   private final RectF rect = new RectF();
-  private final Paint paint = new Paint();
+  private final Paint paint = new LPaint();
+  private final float[] points = new float[8];
+  private final Path path = new Path();
   private final Layer layerModel;
   @Nullable private BaseKeyframeAnimation<ColorFilter, ColorFilter> colorFilterAnimation;
 
@@ -36,26 +39,41 @@ public class SolidLayer extends BaseLayer {
       return;
     }
 
-    int alpha = (int) (parentAlpha / 255f * (backgroundAlpha / 255f * transform.getOpacity().getValue() / 100f) * 255);
+    int opacity = transform.getOpacity() == null ? 100 : transform.getOpacity().getValue();
+    int alpha = (int) (parentAlpha / 255f * (backgroundAlpha / 255f * opacity / 100f) * 255);
     paint.setAlpha(alpha);
     if (colorFilterAnimation != null) {
       paint.setColorFilter(colorFilterAnimation.getValue());
     }
     if (alpha > 0) {
-      updateRect(parentMatrix);
-      canvas.drawRect(rect, paint);
+      points[0] = 0;
+      points[1] = 0;
+      points[2] = layerModel.getSolidWidth();
+      points[3] = 0;
+      points[4] = layerModel.getSolidWidth();
+      points[5] = layerModel.getSolidHeight();
+      points[6] = 0;
+      points[7] = layerModel.getSolidHeight();
+
+      // We can't map rect here because if there is rotation on the transform then we aren't
+      // actually drawing a rect.
+      parentMatrix.mapPoints(points);
+      path.reset();
+      path.moveTo(points[0], points[1]);
+      path.lineTo(points[2], points[3]);
+      path.lineTo(points[4], points[5]);
+      path.lineTo(points[6], points[7]);
+      path.lineTo(points[0], points[1]);
+      path.close();
+      canvas.drawPath(path, paint);
     }
   }
 
-  @Override public void getBounds(RectF outBounds, Matrix parentMatrix) {
-    super.getBounds(outBounds, parentMatrix);
-    updateRect(boundsMatrix);
-    outBounds.set(rect);
-  }
-
-  private void updateRect(Matrix matrix) {
+  @Override public void getBounds(RectF outBounds, Matrix parentMatrix, boolean applyParents) {
+    super.getBounds(outBounds, parentMatrix, applyParents);
     rect.set(0, 0, layerModel.getSolidWidth(), layerModel.getSolidHeight());
-    matrix.mapRect(rect);
+    boundsMatrix.mapRect(rect);
+    outBounds.set(rect);
   }
 
   @SuppressWarnings("unchecked")
